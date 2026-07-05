@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const PINK   = '#E91E8C';
 const PURPLE = '#7B1FA2';
@@ -12,14 +12,33 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const [profile, setProfile]   = useState<any>(null);
   const [loading, setLoading]   = useState(true);
+  const [upiId, setUpiId]       = useState('');
+  const [savingUpi, setSavingUpi] = useState(false);
 
   useEffect(() => {
     console.log('👤 [Profile] Loading captain profile');
     captainApi.getProfile()
-      .then((data) => { setProfile(data); console.log('✅ [Profile] Loaded profile'); })
+      .then((data) => {
+        setProfile(data);
+        setUpiId(data?.profile?.upiId ?? '');
+        console.log('✅ [Profile] Loaded profile');
+      })
       .catch((err: any) => console.error('❌ [Profile] Failed:', err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSaveUpi = async () => {
+    if (!upiId.trim()) return;
+    setSavingUpi(true);
+    try {
+      await captainApi.updateUpi(upiId.trim());
+      Alert.alert('Saved', 'Your UPI ID has been updated.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setSavingUpi(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure?', [
@@ -96,6 +115,43 @@ export default function ProfileScreen() {
               </View>
             </View>
           ))}
+        </View>
+
+        {/* UPI ID card — used to generate the payment QR after a ride completes */}
+        <View className="bg-white rounded-3xl p-5 mb-4 shadow-sm shadow-black/5">
+          <Text className="text-xs font-semibold text-gray-500 uppercase mb-3">Payment UPI ID</Text>
+          <View
+            className="flex-row items-center gap-3 rounded-2xl border-2 px-4 mb-3"
+            style={{ borderColor: '#E5E7EB' }}
+          >
+            <MaterialCommunityIcons name="qrcode" size={18} color={PINK} />
+            <TextInput
+              value={upiId}
+              onChangeText={setUpiId}
+              placeholder="yourname@upi"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="none"
+              className="flex-1 py-3.5 text-sm font-semibold text-gray-800"
+            />
+          </View>
+          <TouchableOpacity
+            onPress={handleSaveUpi}
+            disabled={savingUpi || !upiId.trim()}
+            activeOpacity={0.8}
+            className="h-12 rounded-2xl items-center justify-center"
+            style={{ backgroundColor: upiId.trim() ? PINK : '#F3F4F6' }}
+          >
+            {savingUpi ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-sm font-bold" style={{ color: upiId.trim() ? '#fff' : '#9CA3AF' }}>
+                Save UPI ID
+              </Text>
+            )}
+          </TouchableOpacity>
+          <Text className="text-xs text-gray-400 mt-2">
+            Riders scan a QR generated from this UPI ID to pay you after each ride.
+          </Text>
         </View>
 
         {/* Rating card */}

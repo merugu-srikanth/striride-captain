@@ -342,6 +342,19 @@ export default function HomeScreen() {
     }
   };
 
+  const handleGoToActiveRide = async () => {
+    try {
+      const active = await captainApi.getActiveRide();
+      if (active) {
+        router.push({ pathname: '/(ride)/[rideId]', params: { rideId: active._id } });
+      } else {
+        Alert.alert('No Active Ride', 'Could not find your current ride.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -459,6 +472,7 @@ export default function HomeScreen() {
           {/* On ride active card */}
           {dutyStatus === 'on_ride' && (
             <TouchableOpacity
+              onPress={handleGoToActiveRide}
               className="bg-white rounded-3xl p-5 mb-4 shadow-sm shadow-black/5 flex-row items-center gap-3"
               activeOpacity={0.8}
             >

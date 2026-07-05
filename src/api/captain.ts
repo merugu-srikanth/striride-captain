@@ -22,6 +22,13 @@ export interface CaptainRide {
   completedAt?: string;
 }
 
+export interface PaymentQr {
+  qrCode: string;
+  upiId: string;
+  payeeName: string;
+  amount: number;
+}
+
 export interface EarningsSummary {
   today: { earnings: number; rides: number };
   allTime: { earnings: number; rides: number };
@@ -68,15 +75,33 @@ export const captainApi = {
     return res.data.data;
   },
 
+  cancelRide: async (rideId: string, reason?: string): Promise<CaptainRide> => {
+    console.log('🚫 [Captain] Cancelling ride:', rideId);
+    const res = await apiClient.patch(`/captain/rides/${rideId}/cancel`, { reason });
+    return res.data.data;
+  },
+
   startRide: async (rideId: string, pin: string): Promise<CaptainRide> => {
     console.log('🛵 [Captain] Starting ride with PIN:', rideId);
     const res = await apiClient.patch(`/captain/rides/${rideId}/start`, { pin });
     return res.data.data;
   },
 
+  getPaymentQr: async (rideId: string): Promise<PaymentQr> => {
+    console.log('💳 [Captain] Generating payment QR for:', rideId);
+    const res = await apiClient.get(`/captain/rides/${rideId}/payment-qr`);
+    return res.data.data;
+  },
+
   completeRide: async (rideId: string): Promise<CaptainRide> => {
     console.log('🏆 [Captain] Completing ride:', rideId);
     const res = await apiClient.patch(`/captain/rides/${rideId}/complete`);
+    return res.data.data;
+  },
+
+  updateUpi: async (upiId: string) => {
+    console.log('💳 [Captain] Updating UPI ID');
+    const res = await apiClient.patch('/captain/profile/upi', { upiId });
     return res.data.data;
   },
 
