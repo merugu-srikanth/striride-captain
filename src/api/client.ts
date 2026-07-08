@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { DEFAULT_ERROR_MESSAGE, ERROR_MESSAGES } from '../constants/errors';
 import { useAuthStore } from '../store/authStore';
 
-const API_BASE_URL = 'http://192.168.1.47:5001/api/v1';
+const API_BASE_URL = 'http://192.168.1.30:5001/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -54,20 +54,9 @@ function PinEntry({ onSubmit, loading }: { onSubmit: (pin: string) => void; load
         Ask the rider for their 4-digit PIN to start the ride
       </Text>
 
-      <TextInput
-        ref={inputRef}
-        className="absolute opacity-0 w-0 h-0"
-        keyboardType="number-pad"
-        maxLength={4}
-        value={pin}
-        onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
-      />
-
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={() => inputRef.current?.focus()}
-        className="flex-row gap-4 mb-8"
-      >
+      {/* PIN boxes with a full-size invisible input stretched over them —
+          a zero-size hidden input can't reliably take focus on Android */}
+      <View className="flex-row gap-4 mb-8">
         {digits.map((d, i) => {
           const filled = i < pin.length;
           const active = i === pin.length;
@@ -87,7 +76,16 @@ function PinEntry({ onSubmit, loading }: { onSubmit: (pin: string) => void; load
             </View>
           );
         })}
-      </TouchableOpacity>
+        <TextInput
+          ref={inputRef}
+          className="absolute w-full h-full opacity-0"
+          keyboardType="number-pad"
+          maxLength={4}
+          value={pin}
+          autoFocus
+          onChangeText={(t) => setPin(t.replace(/\D/g, ''))}
+        />
+      </View>
 
       <TouchableOpacity
         onPress={() => onSubmit(pin)}

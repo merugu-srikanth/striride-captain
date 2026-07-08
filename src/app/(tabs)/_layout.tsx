@@ -1,9 +1,19 @@
+import { useAuthStore } from '@/store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 
 const PINK = '#E91E8C';
 
 export default function TabsLayout() {
+  const { token, isLoading } = useAuthStore();
+
+  // Reactive guard: a mid-session logout (e.g. 401 → interceptor logout after
+  // the account is deactivated) must unmount these screens, or their polling
+  // timers keep hitting the API with no token forever.
+  if (!isLoading && !token) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{

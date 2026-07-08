@@ -89,23 +89,9 @@ export default function VerifyScreen() {
         <Text className="font-bold text-gray-700">+91 {phone}</Text>
       </Text>
 
-      {/* Hidden input */}
-      <TextInput
-        ref={inputRef}
-        className="absolute opacity-0 w-0 h-0"
-        keyboardType="number-pad"
-        maxLength={OTP_LENGTH}
-        value={otp}
-        onChangeText={(t) => { setOtp(t.replace(/\D/g, '')); }}
-        onSubmitEditing={handleVerify}
-      />
-
-      {/* OTP boxes */}
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={() => inputRef.current?.focus()}
-        className="flex-row justify-center gap-3 mb-10"
-      >
+      {/* OTP boxes with a full-size invisible input stretched over them —
+          a zero-size hidden input can't reliably take focus on Android */}
+      <View className="flex-row justify-center gap-3 mb-10">
         {digits.map((d, i) => {
           const filled = i < otp.length;
           const active = i === otp.length;
@@ -124,7 +110,17 @@ export default function VerifyScreen() {
             </View>
           );
         })}
-      </TouchableOpacity>
+        <TextInput
+          ref={inputRef}
+          className="absolute w-full h-full opacity-0"
+          keyboardType="number-pad"
+          maxLength={OTP_LENGTH}
+          value={otp}
+          autoFocus
+          onChangeText={(t) => { setOtp(t.replace(/\D/g, '')); }}
+          onSubmitEditing={handleVerify}
+        />
+      </View>
 
       {/* Verify button */}
       <TouchableOpacity
