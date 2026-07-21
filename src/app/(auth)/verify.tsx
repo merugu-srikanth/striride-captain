@@ -1,11 +1,11 @@
 import { authApi } from '@/api/auth';
+import { useToast } from '@/components/Toast';
 import { useAuthStore } from '@/store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,6 +18,7 @@ const OTP_LENGTH = 6;
 export default function VerifyScreen() {
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const { setToken } = useAuthStore();
+  const toast = useToast();
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,14 +50,14 @@ export default function VerifyScreen() {
     try {
       const { token, user } = await authApi.loginVerify(phone!, otp);
       if (user.role !== 'captain') {
-        Alert.alert('Access Denied', 'This app is for captains only.');
+        toast.error('Access denied', 'This app is for captains only.');
         return;
       }
       await setToken(token, user);
       console.log('✅ [Verify] Captain logged in:', user.firstName);
       router.replace('/(tabs)');
     } catch (err: any) {
-      Alert.alert('Invalid OTP', err.message);
+      toast.error('Invalid OTP', err.message);
       setOtp('');
     } finally {
       setLoading(false);
@@ -68,9 +69,9 @@ export default function VerifyScreen() {
     try {
       await authApi.loginRequest(phone);
       startResendTimer();
-      Alert.alert('OTP Sent', 'A new OTP has been sent to your number.');
+      toast.success('OTP sent', 'A new OTP has been sent to your number.');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not resend OTP', err.message);
     }
   };
 

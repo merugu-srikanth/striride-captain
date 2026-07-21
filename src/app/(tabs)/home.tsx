@@ -1,4 +1,5 @@
 import { captainApi, CaptainRide, EarningsSummary } from '@/api/captain';
+import { useToast } from '@/components/Toast';
 import { useAuthStore } from '@/store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -173,6 +174,7 @@ function IncomingRideModal({
 // ─── Main Home Screen ─────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
+  const toast = useToast();
 
   const [dutyStatus, setDutyStatus]       = useState<DutyStatus>('offline');
   const [earnings, setEarnings]           = useState<EarningsSummary | null>(null);
@@ -290,7 +292,7 @@ export default function HomeScreen() {
   // Change status
   const handleStatusChange = async (newStatus: 'online' | 'offline' | 'break') => {
     if (dutyStatus === 'on_ride') {
-      Alert.alert('On a Ride', 'Complete your current ride before changing status.');
+      toast.info('On a ride', 'Complete your current ride before changing status.');
       return;
     }
     console.log('🔄 [Home] Changing status to:', newStatus);
@@ -300,7 +302,7 @@ export default function HomeScreen() {
       setDutyStatus(newStatus);
       await fetchEarnings();
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not update status', err.message);
     } finally {
       setStatusLoading(false);
     }
@@ -320,7 +322,7 @@ export default function HomeScreen() {
       setDutyStatus('on_ride');
       router.push({ pathname: '/(ride)/[rideId]', params: { rideId } });
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not accept ride', err.message);
       setPendingRide(null);
       pendingRideIdRef.current = null;
       startPolling();
@@ -348,10 +350,10 @@ export default function HomeScreen() {
       if (active) {
         router.push({ pathname: '/(ride)/[rideId]', params: { rideId: active._id } });
       } else {
-        Alert.alert('No Active Ride', 'Could not find your current ride.');
+        toast.info('No active ride', 'Could not find your current ride.');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Something went wrong', err.message);
     }
   };
 

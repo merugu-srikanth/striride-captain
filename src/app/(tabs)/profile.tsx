@@ -1,4 +1,5 @@
 import { captainApi } from '@/api/captain';
+import { useToast } from '@/components/Toast';
 import { useAuthStore } from '@/store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ export default function ProfileScreen() {
   const [loading, setLoading]   = useState(true);
   const [upiId, setUpiId]       = useState('');
   const [savingUpi, setSavingUpi] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     console.log('👤 [Profile] Loading captain profile');
@@ -32,9 +34,9 @@ export default function ProfileScreen() {
     setSavingUpi(true);
     try {
       await captainApi.updateUpi(upiId.trim());
-      Alert.alert('Saved', 'Your UPI ID has been updated.');
+      toast.success('Saved', 'Your UPI ID has been updated.');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not save', err.message);
     } finally {
       setSavingUpi(false);
     }

@@ -1,10 +1,10 @@
 import { authApi } from '@/api/auth';
+import { useToast } from '@/components/Toast';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Text,
@@ -18,11 +18,12 @@ const PINK = '#E91E8C';
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
     if (trimmed.length !== 10 || !/^\d{10}$/.test(trimmed)) {
-      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
+      toast.error('Invalid number', 'Please enter a valid 10-digit mobile number.');
       return;
     }
     console.log('📱 [Login] Requesting OTP for captain phone:', trimmed);
@@ -31,7 +32,7 @@ export default function LoginScreen() {
       await authApi.loginRequest(trimmed);
       router.push({ pathname: '/(auth)/verify', params: { phone: trimmed } });
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not send OTP', err.message);
     } finally {
       setLoading(false);
     }

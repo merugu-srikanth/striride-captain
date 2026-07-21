@@ -1,11 +1,11 @@
 import { captainApi, CaptainRide, PaymentQr } from '@/api/captain';
 import CancelReasonModal, { CAPTAIN_CANCEL_REASONS } from '@/components/CancelReasonModal';
+import { useToast } from '@/components/Toast';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   Image,
   Linking,
@@ -27,12 +27,30 @@ const POLL_INTERVAL_MS = 4000;
 
 // Opens turn-by-turn navigation in the Google Maps app (falls back to the
 // browser if it isn't installed) rather than navigating inside our own map.
-async function openGoogleMapsNavigation(coords: { latitude: number; longitude: number }) {
+// Opens the native phone dialer pre-filled with the given number so the
+// captain can call the rider once a ride is accepted.
+async function callPhone(
+  phone: string | undefined,
+  onError: (title: string, message?: string) => void,
+) {
+  if (!phone) return;
+  const url = `tel:${phone.replace(/[^+\d]/g, '')}`;
+  try {
+    await Linking.openURL(url);
+  } catch {
+    onError('Could not start call', 'Unable to open the phone dialer.');
+  }
+}
+
+async function openGoogleMapsNavigation(
+  coords: { latitude: number; longitude: number },
+  onError: (title: string, message?: string) => void,
+) {
   const url = `https://www.google.com/maps/dir/?api=1&destination=${coords.latitude},${coords.longitude}&travelmode=driving`;
   try {
     await Linking.openURL(url);
   } catch (err) {
-    Alert.alert('Error', 'Could not open Google Maps.');
+    onError('Could not open Google Maps', 'Please make sure the Maps app is installed.');
   }
 }
 
@@ -237,6 +255,7 @@ function StepBar({ status }: { status: RideStatus }) {
 // ─── Main Ride Screen ─────────────────────────────────────────────────────────
 export default function RideScreen() {
   const { rideId } = useLocalSearchParams<{ rideId: string }>();
+  const toast = useToast();
   const [ride, setRide]       = useState<CaptainRide | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -262,7 +281,7 @@ export default function RideScreen() {
         if (!active) {
           clearInterval(pollRef.current!);
           console.log('🔄 [Ride] Ride no longer active — likely cancelled by rider');
-          Alert.alert('Ride Cancelled', 'This ride was cancelled by the rider.');
+          toast.info('Ride cancelled', 'This ride was cancelled by the rider.');
           router.replace('/(tabs)/home');
           return;
         }
@@ -297,7 +316,7 @@ export default function RideScreen() {
       const updated = await captainApi.arriveAtPickup(ride._id);
       setRide(updated);
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Something went wrong', err.message);
     } finally {
       setLoading(false);
     }
@@ -311,7 +330,7 @@ export default function RideScreen() {
       const updated = await captainApi.startRide(ride._id, pin);
       setRide(updated);
     } catch (err: any) {
-      Alert.alert('Wrong PIN', err.message);
+      toast.error('Wrong PIN', err.message);
     } finally {
       setLoading(false);
     }
@@ -328,7 +347,7 @@ export default function RideScreen() {
       const qr = await captainApi.getPaymentQr(ride._id);
       setPaymentQr(qr);
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not generate QR', err.message);
     } finally {
       setLoadingQr(false);
     }
@@ -343,7 +362,7 @@ export default function RideScreen() {
       await captainApi.completeRide(ride._id);
       router.replace('/(tabs)/home');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not complete ride', err.message);
       setConfirming(false);
       resolvingRef.current = false;
     }
@@ -359,7 +378,7 @@ export default function RideScreen() {
       setShowCancelModal(false);
       router.replace('/(tabs)/home');
     } catch (err: any) {
-      Alert.alert('Error', err.message);
+      toast.error('Could not cancel ride', err.message);
       resolvingRef.current = false;
     } finally {
       setCancelling(false);
@@ -416,6 +435,16 @@ export default function RideScreen() {
               </Text>
               <Text className="text-xs text-gray-500">{ride.rider.phone}</Text>
             </View>
+            {CANCELLABLE_STATUSES.includes(ride.status) && (
+              <TouchableOpacity
+                onPress={() => callPhone(ride.rider.phone, toast.error)}
+                activeOpacity={0.8}
+                className="w-11 h-11 rounded-full items-center justify-center mr-3"
+                style={{ backgroundColor: GREEN }}
+              >
+                <MaterialCommunityIcons name="phone" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
             <View className="items-end">
               <Text className="text-lg font-black text-gray-900">₹{ride.fareEstimate}</Text>
               <Text className="text-xs text-gray-500">{ride.distanceKm.toFixed(1)} km</Text>
@@ -456,7 +485,7 @@ export default function RideScreen() {
               Head to the pickup location.{'\n'}Tap when you arrive.
             </Text>
             <TouchableOpacity
-              onPress={() => openGoogleMapsNavigation(ride.pickup.coordinates)}
+              onPress={() => openGoogleMapsNavigation(ride.pickup.coordinates, toast.error)}
               activeOpacity={0.8}
               className="w-full h-14 rounded-2xl items-center justify-center flex-row gap-2 mb-3"
               style={{ backgroundColor: MAPS_BLUE }}
@@ -498,7 +527,7 @@ export default function RideScreen() {
               Collect ₹{ride.fareEstimate} via UPI from the rider.
             </Text>
             <TouchableOpacity
-              onPress={() => openGoogleMapsNavigation(ride.destination.coordinates)}
+              onPress={() => openGoogleMapsNavigation(ride.destination.coordinates, toast.error)}
               activeOpacity={0.8}
               className="w-full h-14 rounded-2xl items-center justify-center flex-row gap-2 mb-3"
               style={{ backgroundColor: MAPS_BLUE }}
